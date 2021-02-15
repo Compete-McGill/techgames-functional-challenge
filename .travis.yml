@@ -4,7 +4,7 @@ services:
         - docker
 
 script:
-        - docker build -t idodin/functional:latest .
+        - docker build -t compete-mcgill/functional:latest .
 
 deploy:
         provider: script
