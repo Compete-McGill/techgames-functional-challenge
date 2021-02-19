@@ -3,19 +3,20 @@ let identity x =
 	raise NotImplemented
 ;;
 
-let rec append (l1 : 'a list) (l2 : 'a list) : 'a list = 
-	raise NotImplemented
-;;
 
 let rec reverse (l : 'a list) : 'a list = 
 	raise NotImplemented
 ;;
 
-let rec findNthElement ((l : 'a list), (n : int)) : 'a option = 
+let palindrome (l: 'a list) : bool  = 
 	raise NotImplemented
 ;;
 
-let rec replicateSomeElements ((p : 'a -> bool), (l : 'a list), (k : int)) : 'a list = 
+let rec squeeze l  = 
+	raise NotImplemented
+;;
+
+let rec sprinkle l = 
 	raise NotImplemented
 ;;
 
@@ -27,10 +28,11 @@ let rec countNodes (t : 'a tree) : int =
 	raise NotImplemented
 ;;
 
-exception NotFound
-let findNode ((p : 'a -> bool), (t : 'a tree)) : 'a option =
+
+let rec ironOut (t: int tree) : int list list = 
 	raise NotImplemented
 ;;
+
 
 let fib max = 
 	raise NotImplemented
@@ -39,3 +41,6 @@ let fib max =
 let pascal max = 
 	raise NotImplemented
 ;;
+
+
+
