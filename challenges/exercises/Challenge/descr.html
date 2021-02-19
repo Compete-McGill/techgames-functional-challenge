@@ -34,7 +34,7 @@
         <h4>
             Palindrome (10 points)
         </h4>
-        Implement the function reverse that takes in a list and checks if it's a palindrome. The function should have the following type signature:
+        Implement the function reverse that takes in a list and checks if it's a palindrome. Hint: You can use the reverse function from previous question.The function should have the following type signature:
         <pre>val palindrome : 'a list -> bool = &lt;fun&gt; </pre>
     </li>
 
@@ -116,7 +116,7 @@
         <h4>IronOut (20 pts) </h4>
         Implement the fuction ironOut that takes a int tree and returns a list of int lists. Your function should enumerate all possible paths from the root to a leaf node. Caution, the tree type e defined are multi-way trees, which means they can have more than
         2 children. The function has the following type signature:
-        <pre>val iron_out : int tree -> int list list = &lt;fun&gt;</pre> Here are some examples:
+        <pre>val ironOut : int tree -> int list list = &lt;fun&gt;</pre> Here are some examples:
         <pre>#let  exampleTree : int tree =
             Node (1,
              [Node (2, []);
@@ -196,7 +196,7 @@ val unfold : ('b -> 'a * 'b) -> ('b -> bool) -> 'b -> 'a list = &lt;fun&gt;
             Pascal's Triangle (5 points)
         </h4>
         Implement the function pascal that takes an input an integer n and generate a list composed of the rows of pascal's triangle up to (and excluding) n. <strong>Note</strong>: Here we want to generate a list of lists, where the index <code>i</code>        the outer most list corresponds to row <code>(i+1)</code> in pascal's triangle.
-        <br><br> Below is an example of the expected command line execution of fib:
+        <br><br> Below is an example of the expected command line execution of pascal:
         <pre>
 # pascal 0;;
 - : int list list = []
