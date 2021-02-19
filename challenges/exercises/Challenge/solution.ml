@@ -3,30 +3,39 @@ let solution _ = "This is the solution"
 let identity x = x
 ;;
 
-let rec append (l1 : 'a list) (l2 : 'a list) : 'a list = l1 @ l2
-;;
 
 let rec reverse (l : 'a list) : 'a list = List.rev l
 ;;
 
-let rec findNthElement ((l : 'a list), (n : int)) : 'a option = 
-	if n >= 0 then
-		match l with
-		| [] -> None
-		| h::t -> if n = 0 then Some h else findNthElement(t, n-1)
-	else None
+
+let palindrome (l: 'a list) : bool   =
+	l = List.rev l
 ;;
 
-let rec replicateSomeElements ((p : 'a -> bool), (l : 'a list), (k : int)) : 'a list = 
-	let rec f n e = 
-			if n <= 0 then []
-			else e::(f (n-1) e)
-	in
-	List.fold_left 
-		(fun a x -> if p x then a@(f k x) else a@[x])
-		[]
-		l
+
+let rec squeeze l  = 
+  match l with 
+  | a :: (b :: _ as t) -> if a = b then squeeze t else a :: squeeze t
+  | smaller -> smaller
 ;;
+
+
+let rec sprinkle l =
+	match l with 
+	|[] -> [([],[])]
+  |h :: tl -> let l2  = sprinkle tl in
+      let rec left item l = 
+        match  l with 
+        | [] -> []
+        | (p1,p2) :: rest -> (item ::p1, p2) :: (left item rest) in
+      let rec right item  l  = 
+        match l with
+        |[] -> []
+        |(p1,p2) :: rest -> (p1, item :: p2) :: (right item rest) in
+      
+      left  h l2 @ right h l2 
+;;
+
 
 let rec enumerateKCombinations ((l : 'a list), (k : int)) : 'a list list =
 	if k <= 0 then [[]]
@@ -48,17 +57,17 @@ let rec countNodes (t : 'a tree) : int =
 		| _ -> List.fold_left (fun acc t' -> acc + countNodes t') 1 children
 ;;
 
-exception NotFound
-let findNode ((p : 'a -> bool), (t : 'a tree)) : 'a option =
-	let rec find_e (p : 'a -> bool) (t : 'a tree) : 'a = match t with
-	|Node (a, l)-> 
-	  if (p a) then a 
-	  else match l with 
-	  	|[] -> raise NotFound
-	  	|Node (a, linside)::l -> try find_e p (Node (a,l)) with NotFound -> find_e p (Node (a,linside))
-	in
-	try ( Some (find_e p t) ) with NotFound -> None
+
+let rec ironOut (t: int tree) : int list list = 
+	let Node(x,ts) =  t in 
+		match ts with
+		| [] -> [ [ x ] ]
+		| ts -> 
+				List.map (fun xs -> x :: xs) @@ 
+				List.concat @@ 
+				List.map ironOut ts
 ;;
+
 
 let fib max = 
 	unfold 
@@ -75,3 +84,8 @@ let pascal max =
 		(fun l -> List.length l >= max)
 		[1]
 ;;
+
+
+
+
+		

@@ -26,6 +26,39 @@ let t10 = Node (1, [ Node (2, [])
                    ])
 
 (*SAMPLER DEFINITIONS*)
+exception InvalidSampler of string
+
+(* Palindrome sampler
+ratio = percent chance of getting a palindrome element. Please give a ratio between 0 and 1.
+Note: set ratio higher than desired chance of getting palindrome. Chance of getting palindrome = ratio^(floor(size/2)).
+This means that the longer the list the less likely a palindrom will be generated. 
+This is sampled in this way since otherwise we would have to use log function.*)
+let sample_palindrome ?(max_halfSize = 4) ?(ratio = 0.75) (sample_el : 'a sampler) : 'a list sampler = fun () ->
+  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!") else
+  let l1 = sample_list ~max_size:max_halfSize sample_el () in
+  let l2 = List.map (fun x -> 
+    if Random.float 1.0 < ratio then x
+    else sample_el ()
+  ) l1 in
+  let l2 = if Random.bool () then (sample_el ()) :: l2 else l2 in
+  List.rev_append l1 l2
+
+(* Squeeze Sampler 
+ratio = chance of producing consecutive elements*)
+let sample_squeeze_list ?(max_size = 10) ?(ratio = 0.5) (sample_el : 'a sampler) : 'a list sampler = fun () ->
+  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!") else
+  let rec gen_list n acc =
+    if n = 0 then acc else 
+    let acc = match acc with
+      | [] -> sample_el () :: acc
+      | x :: xs when Random.float 1.0 < ratio -> x :: acc
+      | _ -> sample_el () :: acc
+    in gen_list (n - 1) acc
+  in
+  gen_list (Random.int max_size) []
+
+
+
 (*let rec sample_tree ((sample: unit -> 'a), (maxHeightandWidth: int)): unit -> 'a tree = 
   fun () ->*)
 let rec sample_tree (sample: unit -> 'a) (maxHeightandWidth: int) ():'a tree = 
@@ -38,7 +71,7 @@ let rec sample_tree (sample: unit -> 'a) (maxHeightandWidth: int) ():'a tree =
   begin
     if maxHeightandWidth <= 1 then 
       Node(sample(), [])
-    else 
+    else  
       (*
       let tree_sampler = sample_tree sample (maxHeightandWidth-1) in
       let children = sample_list 
@@ -59,89 +92,101 @@ let test_identity () =
     test_function_1_against_solution
       [%ty: int -> int]
       "identity"
-      ~gen:0
-      [0]
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: float -> float]
       "identity"
-      ~gen:0
-      [0.0]
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: char -> char]
       "identity"
-      ~gen:0
-      ['a']
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: string -> string]
       "identity"
-      ~gen:0
-      ["hello world"]
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: bool -> bool]
       "identity"
-      ~gen:0
-      [true]
-  end
-
-let test_append () = 
-  begin
-    test_function_2_against_solution
-      [%ty: int list -> int list -> int list]
-      "append"
-      ~gen:10
+      ~gen:1
       []
   end
+
 
 let test_reverse () = 
   begin
     test_function_1_against_solution
       [%ty: int list -> int list]
       "reverse"
+      ~gen:8
+      [[] ; [0]]
+  end
+  
+
+let test_palindrome () = 
+  begin 
+    test_function_1_against_solution
+      [%ty: int list -> bool] "palindrome"
+      ~sampler: (sample_palindrome sample_int)
+      ~gen:4
+      [[] ; [0] ; [1;3;3;1]]
+    @
+    test_function_1_against_solution
+    [%ty: string list -> bool] "palindrome"
+      ~sampler: (sample_palindrome sample_string)
+      ~gen:1
+      [["a";"b"; "a"]; ["aa"; "ba"; "a"]]
+  end 
+
+
+let test_squeeze () = 
+  (* sample_alternatively takes a list of samplers and returns a sampler that
+      mimics one of the samplers in the list at random each call *)
+  let sampler = sample_alternatively [
+    sample_squeeze_list ~ratio:0.25 sample_int; (* small amount of consecutive elements *)
+    sample_squeeze_list ~ratio:0.5 sample_int;  (* medium amount of consecutive elements *)
+    sample_squeeze_list ~ratio:0.75 sample_int; (* large amount of consecutive elements *)
+  ] in
+  begin
+    test_function_1_against_solution
+      [%ty: int list  -> int list ]
+      "squeeze"
+      ~sampler: sampler
+      ~gen:13
+      [[] ; [0]]
+  end
+
+
+
+let test_sprinkle () = 
+  begin 
+    test_function_1_against_solution
+      [%ty: int list -> (int list * int list) list]
+      "sprinkle"
       ~gen:10
-      []
-  end
-
-let test_findNthElement () = 
-  begin
-    test_function_1_against_solution
-      [%ty: (int list * int) -> int option]
-      "findNthElement"
-      ~gen:15
-      []
-  end
-
-let test_replicateSomeElements () = 
-  begin
-    test_function_1_against_solution
-      [%ty: ((int -> bool) * int list * int) -> int list ]
-      "replicateSomeElements"
-      ~sampler: 
-        (fun () -> 
-          begin
-            (fun x -> x mod 2 = 0),
-            (sample_list ~max_size: 10 sample_int) (),
-            1 + Random.int 5
-          end)
-      ~gen:5
       []
     @
     test_function_1_against_solution
-      [%ty: ((int -> bool) * int list * int) -> int list ]
-      "replicateSomeElements"
-      ~sampler: 
-        (fun () -> 
-          begin
-            (fun x -> x mod 2 <> 0),
-            (sample_list ~max_size: 10 sample_int) (),
-            1 + Random.int 5
-          end)
-      ~gen:5
+      [%ty: char list -> (char list * char list) list]
+      "sprinkle"
+      ~gen:10
       []
-  end
+    @
+    test_function_1_against_solution
+      [%ty: string list -> (string list * string list) list]
+      "sprinkle"
+      ~gen:10
+      []
+  end 
+
 
 let test_enumerateKCombinations () = 
   begin
@@ -163,24 +208,15 @@ let test_countNodes () =
       []
   end
 
-let test_findNode () = 
-  begin
-    test_function_1_against_solution
-      [%ty: ((int -> bool) * int tree) -> int option]
-      "findNode"
-      ~gen:0
-      [ ((fun x -> x = 0), tLeaf)
-      ; ((fun x -> x = 1), tLeaf)
-      ; ((fun x -> x = 0), tDeep)
-      ; ((fun x -> x = 1), tDeep)
-      ; ((fun x -> x = 5), tDeep)
-      ; ((fun x -> x = 0), tWide)
-      ; ((fun x -> x = 1), tWide)
-      ; ((fun x -> x = 5), tWide)
-      ; ((fun x -> x = 5), t10)
-      ; ((fun x -> x = 10), t10)
-      ]
-  end
+  let test_ironOut () = 
+    begin
+      test_function_1_against_solution
+        [%ty: int tree -> int list list]
+        "ironOut"
+        ~sampler:(sample_tree sample_int 5)
+        ~gen:20
+        []
+    end
 
 let test_fib () = 
   begin
@@ -203,6 +239,10 @@ let test_pascal () =
   end
 
 
+
+
+
+
 (*AGGREGATED CALL FOR ALL TEST FUNCTIONS*)
 let () = 
   set_result @@
@@ -210,32 +250,39 @@ let () =
   [
     Section
       ([ Text "Function" ; Code "identity" ],
-        test_identity());
-    Section
-      ([ Text "Function" ; Code "append" ],
-        test_append());
+        test_identity());   
     Section
       ([ Text "Function" ; Code "reverse" ],
       test_reverse());
+    Section 
+      ([Text "Function"; Code "palindrome"],
+        test_palindrome());  
+      
     Section
-      ([ Text "Function" ; Code "findNthElement" ],
-        test_findNthElement());
+      ([Text "Function"; Code  "squeeze"],
+      test_squeeze());
+
     Section
-      ([ Text "Function" ; Code "replicateSomeElements" ],
-      test_replicateSomeElements());
+      ([ Text "Function" ; Code "sprinkle" ],
+      test_sprinkle());
+
     Section
       ([ Text "Function" ; Code "enumerateKCombinations" ],
       test_enumerateKCombinations());
+
     Section
       ([ Text "Function" ; Code "countNodes" ],
       test_countNodes());
+
     Section
-      ([ Text "Function" ; Code "findNode" ],
-      test_findNode());
+      ([ Text "Function" ; Code "ironOut" ],
+      test_ironOut());
+      
     Section
       ([ Text "Function" ; Code "fib" ],
       test_fib());
     Section
       ([ Text "Function" ; Code "pascal" ],
       test_pascal())
+    
   ]
