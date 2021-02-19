@@ -58,10 +58,6 @@ let sample_squeeze_list ?(max_size = 10) ?(ratio = 0.5) (sample_el : 'a sampler)
   gen_list (Random.int max_size) []
 
 
-let optArg_rand_int min max = function
-  | None -> Random.int (max - min + 1) + min
-  | Some x -> x
-
 (* Tree sampler *)
 let sample_tree ?(max_depth = Random.int 10) ?(max_branch_factor = Random.int 10 + 1) (sample_el : 'a sampler) : 'a tree sampler = fun () ->
   if max_branch_factor <= 0 then raise (InvalidSampler "Tree_Sampler: max_branch_factor must be greater than 0!");
@@ -243,9 +239,9 @@ let test_enumerateKCombinations () =
 
 let test_countNodes () = 
   let sampler = sample_alternatively [
-    sample_tree ~max_depth:10 ~max_branch_factor:1 sample_int; (* Skinny *)
+    sample_tree ~max_depth:10 ~max_branch_factor:2 sample_int; (* Skinny *)
     sample_tree ~max_depth:3 ~max_branch_factor:15 sample_int; (* Wide *)
-    sample_tree sample_int; (* Random *)
+    sample_tree ~max_depth:5 ~max_branch_factor:5 sample_int; (* Average *)
     sample_tree sample_int; (* Random *)
   ] in
   begin
@@ -258,9 +254,9 @@ let test_countNodes () =
 
 let test_ironOut () = 
   let sampler = sample_alternatively [
-    sample_tree ~max_depth:10 ~max_branch_factor:1 sample_int; (* Skinny *)
+    sample_tree ~max_depth:10 ~max_branch_factor:2 sample_int; (* Skinny *)
     sample_tree ~max_depth:3 ~max_branch_factor:15 sample_int; (* Wide *)
-    sample_tree sample_int; (* Random *)
+    sample_tree ~max_depth:5 ~max_branch_factor:5 sample_int; (* Average *)
     sample_tree sample_int; (* Random *)
   ] in
   begin
