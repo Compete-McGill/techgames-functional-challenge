@@ -15,16 +15,20 @@ type 'a tree = Node of 'a * ('a tree) list
 
 (*List and Tree Examples*)
 let exampleList = [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10];;
-let exampleTree = Node (1, [ Node (2, [])
-						   						 ; Node (3, [ Node (4, [])
-	                       			  			; Node (5, [])
-	                   				  				; Node (6, [ Node (7, [])
-	                   				  			 						 ; Node (8, [])
-	                   				  			 						 ; Node (9, [])
-	                   				  									 ; Node (10, [])
-	                   				  			 						 ])
-	                   				  				])
-	                      	]);;
+let exampleTree = 
+	Node (1, [
+		Node (2, []); 
+		Node (3, [ 
+			Node (4, []);
+			Node (5, []); 
+			Node (6, [ 
+				Node (7, []);
+				Node (8, []);
+				Node (9, []);
+				Node (10, []);
+           	])
+        ])
+    ]);;
 
 (*
 UNFOLD EXAMPLE 1: 
