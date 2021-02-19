@@ -34,9 +34,7 @@ Note: set ratio higher than desired chance of getting palindrome. Chance of gett
 This means that the longer the list the less likely a palindrom will be generated. 
 This is sampled in this way since otherwise we would have to use log function.*)
 let sample_palindrome ?(max_halfSize = 4) ?(ratio = 0.75) (sample_el : 'a sampler) : 'a list sampler = fun () ->
-  if ratio < 0. || ratio > 1. then 
-    raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!")
-  else
+  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!") else
   let l1 = sample_list ~max_size:max_halfSize sample_el () in
   let l2 = List.map (fun x -> 
     if Random.float 1.0 < ratio then x
@@ -45,7 +43,20 @@ let sample_palindrome ?(max_halfSize = 4) ?(ratio = 0.75) (sample_el : 'a sample
   let l2 = if Random.bool () then (sample_el ()) :: l2 else l2 in
   List.rev_append l1 l2
 
-(* Squeeze Sampler *)
+(* Squeeze Sampler 
+ratio = chance of producing consecutive elements*)
+let sample_squeeze_list ?(max_size = 10) ?(ratio = 0.5) (sample_el : 'a sampler) : 'a list sampler = fun () ->
+  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!") else
+  let rec gen_list n acc =
+    if n = 0 then acc else 
+    let acc = match acc with
+      | [] -> sample_el () :: acc
+      | x :: xs when Random.float 1.0 < ratio -> x :: acc
+      | _ -> sample_el () :: acc
+    in gen_list (n - 1) acc
+  in
+  gen_list (Random.int max_size) []
+
 
 
 (*let rec sample_tree ((sample: unit -> 'a), (maxHeightandWidth: int)): unit -> 'a tree = 
@@ -110,14 +121,14 @@ let test_identity () =
   end
 
 
-  let test_reverse () = 
-    begin
-      test_function_1_against_solution
-        [%ty: int list -> int list]
-        "reverse"
-        ~gen:10
-        []
-    end
+let test_reverse () = 
+  begin
+    test_function_1_against_solution
+      [%ty: int list -> int list]
+      "reverse"
+      ~gen:8
+      [[] ; [0]]
+  end
   
 
 let test_palindrome () = 
@@ -135,29 +146,22 @@ let test_palindrome () =
       [["a";"b"; "a"]; ["aa"; "ba"; "a"]]
   end 
 
-let sample_small () = Random.int 4 +1
-let sample_big ()  = Random.int 10 +1
+
 let test_squeeze () = 
+  (* sample_alternatively takes a list of samplers and returns a sampler that
+      mimics one of the samplers in the list at random each call *)
+  let sampler = sample_alternatively [
+    sample_squeeze_list ~ratio:0.25 sample_int; (* small amount of consecutive elements *)
+    sample_squeeze_list ~ratio:0.5 sample_int;  (* medium amount of consecutive elements *)
+    sample_squeeze_list ~ratio:0.75 sample_int; (* large amount of consecutive elements *)
+  ] in
   begin
     test_function_1_against_solution
       [%ty: int list  -> int list ]
       "squeeze"
-      ~sampler:(fun () -> 
-        begin  
-          (sample_list ~max_size:10  ~dups: true  ~sorted: false sample_small) () 
-        end)
-      ~gen:10
-      []
-    @
-    test_function_1_against_solution
-      [%ty: int list  -> int list ]
-      "squeeze"
-      ~sampler: (fun () -> 
-      begin  
-        (sample_list ~max_size:10  ~dups: true  ~sorted: false sample_big) () 
-      end)
-      ~gen:10
-      []
+      ~sampler: sampler
+      ~gen:13
+      [[] ; [0]]
   end
 
 
