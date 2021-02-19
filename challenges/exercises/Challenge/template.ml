@@ -20,9 +20,6 @@ let rec sprinkle l =
 	raise NotImplemented
 ;;
 
-let rec enumerateKCombinations ((l : 'a list), (k : int)) : 'a list list =
-	raise NotImplemented
-;;
 
 let rec countNodes (t : 'a tree) : int = 
 	raise NotImplemented

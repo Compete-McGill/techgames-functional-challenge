@@ -34,7 +34,7 @@ Note: set ratio higher than desired chance of getting palindrome. Chance of gett
 This means that the longer the list the less likely a palindrom will be generated. 
 This is sampled in this way since otherwise we would have to use log function.*)
 let sample_palindrome ?(max_halfSize = 4) ?(ratio = 0.75) (sample_el : 'a sampler) : 'a list sampler = fun () ->
-  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!") else
+  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!");
   let l1 = sample_list ~max_size:max_halfSize sample_el () in
   let l2 = List.map (fun x -> 
     if Random.float 1.0 < ratio then x
@@ -46,7 +46,7 @@ let sample_palindrome ?(max_halfSize = 4) ?(ratio = 0.75) (sample_el : 'a sample
 (* Squeeze Sampler 
 ratio = chance of producing consecutive elements*)
 let sample_squeeze_list ?(max_size = 10) ?(ratio = 0.5) (sample_el : 'a sampler) : 'a list sampler = fun () ->
-  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!") else
+  if ratio < 0. || ratio > 1. then raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!");
   let rec gen_list n acc =
     if n = 0 then acc else 
     let acc = match acc with
@@ -58,7 +58,47 @@ let sample_squeeze_list ?(max_size = 10) ?(ratio = 0.5) (sample_el : 'a sampler)
   gen_list (Random.int max_size) []
 
 
+let optArg_rand_int min max = function
+  | None -> Random.int (max - min + 1) + min
+  | Some x -> x
 
+(* Tree sampler *)
+let sample_tree ?(max_depth = Random.int 10) ?(max_branch_factor = Random.int 10 + 1) (sample_el : 'a sampler) : 'a tree sampler = fun () ->
+  if max_branch_factor <= 0 then raise (InvalidSampler "Tree_Sampler: max_branch_factor must be greater than 0!");
+  
+  let leaf = fun () -> Node(sample_el (), []) in 
+
+  let rec node_sampler cur_depth =
+    if cur_depth = max_depth then 
+      leaf ()
+    else
+      let b_factor = (Random.int max_branch_factor) in
+      let children = children_sampler cur_depth b_factor in
+      Node(
+        sample_el (), 
+        children
+      )
+
+  and children_sampler cur_depth b_factor =
+    let rec buildChildren n acc = 
+      if n = 0 then acc else
+      let child =
+        (* minimize size of trees a little to encourage smaller trees *)
+        if Random.int max_depth <= cur_depth ||           (* generates more leafs the deeper we go *)  
+            Random.int max_branch_factor < b_factor then  (* generates more leafs the more children a node has *)
+          leaf ()
+        else
+          node_sampler (cur_depth + 1)
+      in buildChildren (n - 1) (child :: acc)
+    in
+    buildChildren b_factor []
+  
+  in
+  node_sampler 0
+
+
+
+(* 
 (*let rec sample_tree ((sample: unit -> 'a), (maxHeightandWidth: int)): unit -> 'a tree = 
   fun () ->*)
 let rec sample_tree (sample: unit -> 'a) (maxHeightandWidth: int) ():'a tree = 
@@ -72,7 +112,7 @@ let rec sample_tree (sample: unit -> 'a) (maxHeightandWidth: int) ():'a tree =
     if maxHeightandWidth <= 1 then 
       Node(sample(), [])
     else  
-      (*
+      
       let tree_sampler = sample_tree sample (maxHeightandWidth-1) in
       let children = sample_list 
                       ~min_size: 0
@@ -81,11 +121,13 @@ let rec sample_tree (sample: unit -> 'a) (maxHeightandWidth: int) ():'a tree =
                       ~sorted: false
                       tree_sampler
       in
-      *)
+      
       let children = buildChildren (Random.int (maxHeightandWidth+1)) in
       Node(sample(), children)
   end
-  
+ *)
+
+
 (*TESTING FUNCTIONS*)
 let test_identity () = 
   begin
@@ -172,22 +214,22 @@ let test_sprinkle () =
       [%ty: int list -> (int list * int list) list]
       "sprinkle"
       ~gen:10
-      []
+      [[] ; [0]]
     @
     test_function_1_against_solution
       [%ty: char list -> (char list * char list) list]
       "sprinkle"
-      ~gen:10
+      ~gen:5
       []
     @
     test_function_1_against_solution
       [%ty: string list -> (string list * string list) list]
       "sprinkle"
-      ~gen:10
+      ~gen:3
       []
   end 
 
-
+(* 
 let test_enumerateKCombinations () = 
   begin
     test_function_1_against_solution
@@ -197,26 +239,38 @@ let test_enumerateKCombinations () =
       [(l5,0);(l5,1);(l5,2);(l5,3);(l5,4);
        (l5,5);(l5,6);(l10,-1);(l10,5);(l10,12)]
   end
+ *)
 
 let test_countNodes () = 
+  let sampler = sample_alternatively [
+    sample_tree ~max_depth:10 ~max_branch_factor:1 sample_int; (* Skinny *)
+    sample_tree ~max_depth:3 ~max_branch_factor:15 sample_int; (* Wide *)
+    sample_tree sample_int; (* Random *)
+    sample_tree sample_int; (* Random *)
+  ] in
   begin
     test_function_1_against_solution
-      [%ty: int tree -> int]
-      "countNodes"
-      ~sampler:(sample_tree sample_int 5)
-      ~gen:15
+      [%ty: int tree -> int] "countNodes"
+      ~sampler:sampler
+      ~gen:10
       []
   end
 
-  let test_ironOut () = 
-    begin
-      test_function_1_against_solution
-        [%ty: int tree -> int list list]
-        "ironOut"
-        ~sampler:(sample_tree sample_int 5)
-        ~gen:20
-        []
-    end
+let test_ironOut () = 
+  let sampler = sample_alternatively [
+    sample_tree ~max_depth:10 ~max_branch_factor:1 sample_int; (* Skinny *)
+    sample_tree ~max_depth:3 ~max_branch_factor:15 sample_int; (* Wide *)
+    sample_tree sample_int; (* Random *)
+    sample_tree sample_int; (* Random *)
+  ] in
+  begin
+    test_function_1_against_solution
+      [%ty: int tree -> int list list]
+      "ironOut"
+      ~sampler:sampler
+      ~gen:20
+      []
+  end
 
 let test_fib () = 
   begin
@@ -265,11 +319,11 @@ let () =
     Section
       ([ Text "Function" ; Code "sprinkle" ],
       test_sprinkle());
-
+(* 
     Section
       ([ Text "Function" ; Code "enumerateKCombinations" ],
       test_enumerateKCombinations());
-
+ *)
     Section
       ([ Text "Function" ; Code "countNodes" ],
       test_countNodes());

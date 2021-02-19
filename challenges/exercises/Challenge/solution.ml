@@ -36,7 +36,7 @@ let rec sprinkle l =
       left  h l2 @ right h l2 
 ;;
 
-
+(* 
 let rec enumerateKCombinations ((l : 'a list), (k : int)) : 'a list list =
 	if k <= 0 then [[]]
 	else 
@@ -49,6 +49,7 @@ let rec enumerateKCombinations ((l : 'a list), (k : int)) : 'a list list =
 		        with_h @ without_h
 		end
 ;;
+ *)
 
 let rec countNodes (t : 'a tree) : int = 
 	let Node (value, children) = t in
