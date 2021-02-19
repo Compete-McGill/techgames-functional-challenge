@@ -26,6 +26,28 @@ let t10 = Node (1, [ Node (2, [])
                    ])
 
 (*SAMPLER DEFINITIONS*)
+exception InvalidSampler of string
+
+(* Palindrome sampler
+ratio = percent chance of getting a palindrome element. Please give a ratio between 0 and 1.
+Note: set ratio higher than desired chance of getting palindrome. Chance of getting palindrome = ratio^(floor(size/2)).
+This means that the longer the list the less likely a palindrom will be generated. 
+This is sampled in this way since otherwise we would have to use log function.*)
+let sample_palindrome ?(max_halfSize = 4) ?(ratio = 0.75) (sample_el : 'a sampler) : 'a list sampler = fun () ->
+  if ratio < 0. || ratio > 1. then 
+    raise (InvalidSampler "Palindrome_Sampler: Ratio must be between 0 and 1!")
+  else
+  let l1 = sample_list ~max_size:max_halfSize sample_el () in
+  let l2 = List.map (fun x -> 
+    if Random.float 1.0 < ratio then x
+    else sample_el ()
+  ) l1 in
+  let l2 = if Random.bool () then (sample_el ()) :: l2 else l2 in
+  List.rev_append l1 l2
+
+(* Squeeze Sampler *)
+
+
 (*let rec sample_tree ((sample: unit -> 'a), (maxHeightandWidth: int)): unit -> 'a tree = 
   fun () ->*)
 let rec sample_tree (sample: unit -> 'a) (maxHeightandWidth: int) ():'a tree = 
@@ -59,32 +81,32 @@ let test_identity () =
     test_function_1_against_solution
       [%ty: int -> int]
       "identity"
-      ~gen:0
-      [0]
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: float -> float]
       "identity"
-      ~gen:0
-      [0.0]
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: char -> char]
       "identity"
-      ~gen:0
-      ['a']
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: string -> string]
       "identity"
-      ~gen:0
-      ["hello world"]
+      ~gen:1
+      []
     @
     test_function_1_against_solution
       [%ty: bool -> bool]
       "identity"
-      ~gen:0
-      [true]
+      ~gen:1
+      []
   end
 
 
@@ -101,32 +123,19 @@ let test_identity () =
 let test_palindrome () = 
   begin 
     test_function_1_against_solution
-      [%ty: int list -> bool]
-      "palindrome"
-       ~gen:0
-       [[1;3;3;1]]
-    @
-    test_function_1_against_solution
-      [%ty: int list -> bool]
-      "palindrome"
-       ~gen:0
-       [[0]]
-    @
-    test_function_1_against_solution
-    [%ty: string list -> bool]
-    "palindrome"
+      [%ty: int list -> bool] "palindrome"
+      ~sampler: (sample_palindrome sample_int)
       ~gen:4
-      [["a"] ; ["a";"b"; "a"]; ["aa"; "ba"; "a"]]
-
+      [[] ; [0] ; [1;3;3;1]]
     @
     test_function_1_against_solution
-    [%ty : int list -> bool]
-    "palindrome"
-    ~gen:7
-    []
+    [%ty: string list -> bool] "palindrome"
+      ~sampler: (sample_palindrome sample_string)
+      ~gen:1
+      [["a";"b"; "a"]; ["aa"; "ba"; "a"]]
   end 
 
-  let sample_small () = Random.int 4 +1
+let sample_small () = Random.int 4 +1
 let sample_big ()  = Random.int 10 +1
 let test_squeeze () = 
   begin
